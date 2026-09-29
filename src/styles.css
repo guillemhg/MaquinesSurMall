@@ -143,3 +143,40 @@ textarea { resize: vertical; }
   .collection-machine { grid-template-columns: 1fr; }
   .timeline-row { grid-template-columns: 82px 85px minmax(0, 1fr); gap: 8px; }
 }
+
+.backup-title { margin-top: 24px; }
+@media (max-width: 980px) {
+  .sidebar {
+    position: fixed;
+    z-index: 50;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    height: auto;
+    min-height: 0;
+    padding: 7px max(6px, env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+    border-top: 1px solid #344054;
+  }
+  .sidebar nav {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 2px;
+    overflow: visible;
+    padding: 0;
+  }
+  .nav-button {
+    padding: 9px 3px;
+    text-align: center;
+    font-size: 11px;
+    line-height: 1.1;
+  }
+  .content {
+    padding-bottom: calc(92px + env(safe-area-inset-bottom));
+  }
+}
+@media (max-width: 430px) {
+  .nav-button { font-size: 10px; }
+  .topbar h1 { font-size: 25px; }
+}
