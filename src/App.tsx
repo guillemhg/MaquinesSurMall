@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, exportBackup, importBackup } from './db'
 import type {
@@ -11,6 +11,11 @@ import type {
 } from './types'
 
 type View = 'inicio' | 'bares' | 'averias' | 'recaudaciones' | 'calendario' | 'ajustes'
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>
+}
 
 const today = () => new Date().toISOString().slice(0, 10)
 const monthNow = () => new Date().toISOString().slice(0, 7)
@@ -34,6 +39,27 @@ export default function App() {
   const [view, setView] = useState<View>('inicio')
   const [selectedBarId, setSelectedBarId] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      event.preventDefault()
+      setInstallPrompt(event as BeforeInstallPromptEvent)
+    }
+
+    window.addEventListener('beforeinstallprompt', handler)
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+
+  async function installApp() {
+    if (!installPrompt) return
+    await installPrompt.prompt()
+    const choice = await installPrompt.userChoice
+    if (choice.outcome === 'accepted') {
+      setInstallPrompt(null)
+      flash('Aplicación instalada.')
+    }
+  }
   const bars = useLiveQuery(() => db.bars.orderBy('name').toArray(), []) ?? []
   const machines = useLiveQuery(() => db.machines.toArray(), []) ?? []
   const incidents = useLiveQuery(() => db.incidents.orderBy('date').reverse().toArray(), []) ?? []
@@ -127,7 +153,7 @@ export default function App() {
           <CalendarView bars={bars} machines={machines} incidents={incidents} collections={collections} entries={entries} />
         )}
 
-        {view === 'ajustes' && <SettingsView flash={flash} />}
+        {view === 'ajustes' && <SettingsView flash={flash} installApp={installPrompt ? installApp : undefined} />}
       </main>
     </div>
   )
@@ -604,7 +630,7 @@ function CalendarView({
   )
 }
 
-function SettingsView({ flash }: { flash: (m: string) => void }) {
+function SettingsView({ flash, installApp }: { flash: (m: string) => void; installApp?: () => Promise<void> }) {
   const inputRef = useRef<HTMLInputElement>(null)
 
   async function downloadBackup() {
@@ -649,7 +675,16 @@ function SettingsView({ flash }: { flash: (m: string) => void }) {
       </div>
 
       <div className="panel">
-        <div className="panel-title"><div><h2>Copias de seguridad</h2><p>El archivo lo controlas tú</p></div></div>
+        <div className="panel-title"><div><h2>Aplicación móvil</h2><p>Instálala en el teléfono como una app normal</p></div></div>
+        {installApp ? (
+          <button className="primary wide" onClick={installApp}>Instalar Maquines Sur</button>
+        ) : (
+          <div className="local-note">
+            <strong>Instalación</strong>
+            <p>Si todavía no está instalada, abre el menú del navegador y elige “Instalar aplicación” o “Añadir a pantalla de inicio”.</p>
+          </div>
+        )}
+        <div className="panel-title backup-title"><div><h2>Copias de seguridad</h2><p>El archivo lo controlas tú</p></div></div>
         <button className="primary wide" onClick={downloadBackup}>Exportar copia JSON</button>
         <button className="secondary wide" onClick={() => inputRef.current?.click()}>Restaurar copia</button>
         <input ref={inputRef} className="hidden" type="file" accept="application/json,.json" onChange={(e) => restore(e.target.files?.[0])} />
