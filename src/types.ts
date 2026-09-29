@@ -1,0 +1,65 @@
+export type MachineCategory = 'A' | 'B'
+export type IncidentStatus = 'open' | 'resolved'
+
+export interface Bar {
+  id: string
+  name: string
+  address?: string
+  active: boolean
+  createdAt: string
+}
+
+export interface Machine {
+  id: string
+  barId: string
+  category: MachineCategory
+  subtype: string
+  name: string
+  model?: string
+  serialNumber?: string
+  active: boolean
+  createdAt: string
+}
+
+export interface Incident {
+  id: string
+  machineId: string
+  barId: string
+  date: string
+  type: string
+  description: string
+  status: IncidentStatus
+  resolution?: string
+  createdAt: string
+  resolvedAt?: string
+}
+
+export interface Collection {
+  id: string
+  barId: string
+  date: string
+  taxesAmount: number
+  notes?: string
+  createdAt: string
+}
+
+export interface CollectionEntry {
+  id: string
+  collectionId: string
+  machineId: string
+  amount: number
+  hadB: boolean
+  bAmount?: number
+  notes?: string
+}
+
+export interface BackupPayload {
+  app: 'MaquinesSurMall'
+  version: 1
+  exportedAt: string
+  bars: Bar[]
+  machines: Machine[]
+  incidents: Incident[]
+  collections: Collection[]
+  collectionEntries: CollectionEntry[]
+}
