@@ -484,7 +484,13 @@ function CollectionsView({
   const barMachines = machines.filter((m) => m.barId === barId && m.active)
 
   const changeValue = (id: string, patch: Partial<{ amount: string; hadB: boolean; bAmount: string }>) =>
-    setValues((current) => ({ ...current, [id]: { amount: '', hadB: false, bAmount: '', ...current[id], ...patch } }))
+    setValues((current) => ({
+      ...current,
+      [id]: {
+        ...(current[id] ?? { amount: '', hadB: false, bAmount: '' }),
+        ...patch,
+      },
+    }))
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
