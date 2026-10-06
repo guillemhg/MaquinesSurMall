@@ -28,7 +28,7 @@ export interface Incident {
   date: string
   type: string
   description: string
-  status: IncidentStatus
+  status?: IncidentStatus
   resolution?: string
   createdAt: string
   resolvedAt?: string
