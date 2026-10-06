@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon.svg', 'logo-recreativos-sur.webp'],
+      includeAssets: ['logo-recreativos-sur.webp'],
       manifest: {
         name: 'Maquines Sur Mallorca',
         short_name: 'Maquines Sur',
@@ -25,12 +25,6 @@ export default defineConfig({
             sizes: '600x600',
             type: 'image/webp',
             purpose: 'any',
-          },
-          {
-            src: '/MaquinesSurMall/icon.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
-            purpose: 'maskable',
           },
         ],
       },
