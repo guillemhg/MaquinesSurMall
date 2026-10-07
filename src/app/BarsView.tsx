@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { db } from '../db'
 import type { Bar, Incident, Machine, MachineCategory } from '../types'
 import { today, uuid } from './utils'
@@ -18,9 +18,11 @@ export function BarsView({ bars, machines, incidents, selectedBar, selectBar, fl
     flash('Bar añadido.')
   }
 
+  const activeBars = bars.filter((bar) => bar.active).length
+
   return <section className="grid-bars">
     <div className="panel">
-      <div className="panel-title"><div><h2>Bares</h2><p>{bars.length} registrados</p></div></div>
+      <div className="panel-title"><div><h2>Bares</h2><p>{activeBars} activos · {bars.length - activeBars} inactivos</p></div></div>
       <form className="stack-form" onSubmit={addBar}>
         <label>Nombre<input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. Bar Can Toni" /></label>
         <label>Dirección <span className="optional">opcional</span><input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Dirección" /></label>
@@ -31,21 +33,35 @@ export function BarsView({ bars, machines, incidents, selectedBar, selectBar, fl
           const count = machines.filter((m) => m.barId === bar.id && m.active).length
           const historyCount = incidents.filter((i) => i.barId === bar.id).length
           return <button key={bar.id} className={selectedBar?.id === bar.id ? 'bar-item selected' : 'bar-item'} onClick={() => selectBar(bar.id)}>
-            <div><strong>{bar.name}</strong><span>{count} máquinas · {historyCount} averías registradas</span></div><span>›</span>
+            <div>
+              <strong>{bar.name}</strong>
+              <span>{count} máquinas · {historyCount} averías registradas</span>
+              <span className="bar-item-status"><span className={bar.active ? 'status-pill active' : 'status-pill inactive'}>{bar.active ? 'Activo' : 'Inactivo'}</span></span>
+            </div>
+            <span>›</span>
           </button>
         })}
         {bars.length === 0 && <Empty text="Añade el primer bar para empezar." />}
       </div>
     </div>
-    <div className="panel">{selectedBar ? <BarDetail bar={selectedBar} machines={machines.filter((m) => m.barId === selectedBar.id)} incidents={incidents} flash={flash} /> : <Empty text="Selecciona un bar para ver sus máquinas." />}</div>
+    <div className="panel">{selectedBar ? <BarDetail bar={selectedBar} machines={machines.filter((m) => m.barId === selectedBar.id)} incidents={incidents} selectBar={selectBar} flash={flash} /> : <Empty text="Selecciona un bar para ver sus máquinas." />}</div>
   </section>
 }
 
-function BarDetail({ bar, machines, incidents, flash }: { bar: Bar; machines: Machine[]; incidents: Incident[]; flash: (m: string) => void }) {
+function BarDetail({ bar, machines, incidents, selectBar, flash }: { bar: Bar; machines: Machine[]; incidents: Incident[]; selectBar: (id: string | null) => void; flash: (m: string) => void }) {
   const [category, setCategory] = useState<MachineCategory>('B')
   const [subtype, setSubtype] = useState('Máquina recreativa')
   const [name, setName] = useState('')
   const [model, setModel] = useState('')
+  const [editingBar, setEditingBar] = useState(false)
+  const [editName, setEditName] = useState(bar.name)
+  const [editAddress, setEditAddress] = useState(bar.address ?? '')
+
+  useEffect(() => {
+    setEditName(bar.name)
+    setEditAddress(bar.address ?? '')
+    setEditingBar(false)
+  }, [bar.id, bar.name, bar.address])
 
   async function addMachine(e: FormEvent) {
     e.preventDefault()
@@ -66,8 +82,71 @@ function BarDetail({ bar, machines, incidents, flash }: { bar: Bar; machines: Ma
     flash('Avería añadida al historial.')
   }
 
+  async function saveBar(e: FormEvent) {
+    e.preventDefault()
+    if (!editName.trim()) return
+    await db.bars.update(bar.id, { name: editName.trim(), address: editAddress.trim() })
+    setEditingBar(false)
+    flash('Bar actualizado.')
+  }
+
+  async function toggleBarActive() {
+    await db.bars.update(bar.id, { active: !bar.active })
+    flash(bar.active ? 'Bar marcado como inactivo.' : 'Bar marcado como activo.')
+  }
+
+  async function deleteBar() {
+    const collectionCount = await db.collections.where('barId').equals(bar.id).count()
+    const incidentCount = incidents.filter((incident) => incident.barId === bar.id).length
+
+    if (machines.length > 0 || collectionCount > 0 || incidentCount > 0) {
+      window.alert('Este bar tiene máquinas o historial asociado. Para no perder datos, márcalo como Inactivo en lugar de eliminarlo.')
+      return
+    }
+
+    const ok = window.confirm(`¿Eliminar definitivamente “${bar.name}”? Esta acción no se puede deshacer.`)
+    if (!ok) return
+
+    await db.bars.delete(bar.id)
+    selectBar(null)
+    flash('Bar eliminado.')
+  }
+
   return <>
-    <div className="panel-title"><div><h2>{bar.name}</h2><p>{bar.address || 'Sin dirección'}</p></div><span className="pill">{machines.filter((m) => m.active).length} máquinas</span></div>
+    <div className="panel-title bar-detail-header">
+      <div>
+        <h2>{bar.name}</h2>
+        <p>{bar.address || 'Sin dirección'}</p>
+      </div>
+      <div className="bar-header-actions">
+        <span className={bar.active ? 'status-pill active' : 'status-pill inactive'}>{bar.active ? 'Activo' : 'Inactivo'}</span>
+        <span className="pill">{machines.filter((m) => m.active).length} máquinas</span>
+      </div>
+    </div>
+
+    <div className="bar-admin-card">
+      <div className="bar-admin-row">
+        <div className="bar-admin-copy">
+          <strong>Estado del bar</strong>
+          <span>Los bares inactivos se conservan en el historial, pero no aparecen al crear nuevas recaudaciones.</span>
+        </div>
+        <div className="bar-action-buttons">
+          <button className={bar.active ? 'status-toggle active' : 'status-toggle inactive'} onClick={toggleBarActive}>{bar.active ? 'Activo' : 'Inactivo'}</button>
+          <button className="secondary" onClick={() => setEditingBar((current) => !current)}>{editingBar ? 'Cancelar edición' : 'Editar bar'}</button>
+          <button className="danger-button" onClick={deleteBar}>Eliminar</button>
+        </div>
+      </div>
+
+      {editingBar && <form className="edit-bar-form" onSubmit={saveBar}>
+        <label>Nombre<input value={editName} onChange={(e) => setEditName(e.target.value)} /></label>
+        <label>Dirección<input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} placeholder="Dirección" /></label>
+        <div className="edit-bar-actions">
+          <button className="secondary" type="button" onClick={() => { setEditName(bar.name); setEditAddress(bar.address ?? ''); setEditingBar(false) }}>Cancelar</button>
+          <button className="primary" type="submit">Guardar cambios</button>
+        </div>
+      </form>}
+    </div>
+
     <div className="machine-grid">
       {machines.map((machine) => {
         const historyCount = incidents.filter((i) => i.machineId === machine.id).length
