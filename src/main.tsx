@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import App from './app/AppV2'
 import './styles.css'
 import './map.css'
+import './updates.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
