@@ -5,6 +5,7 @@ import './styles.css'
 import './map.css'
 import './updates.css'
 import './assistant.css'
+import './home-assistant.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
