@@ -7,9 +7,10 @@ import { IncidentsView } from './IncidentsView'
 import { CollectionsView } from './CollectionsView'
 import { MapView } from './MapView'
 import { CalendarView } from './CalendarView'
+import { AssistantView } from './AssistantView'
 import { SettingsView } from './SettingsView'
 
-type View = 'inicio' | 'bares' | 'averias' | 'recaudaciones' | 'mapa' | 'calendario' | 'ajustes'
+type View = 'inicio' | 'bares' | 'averias' | 'recaudaciones' | 'asistente' | 'mapa' | 'calendario' | 'ajustes'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -59,7 +60,7 @@ export default function AppV2() {
     }
   }
 
-  const moreActive = view === 'mapa' || view === 'calendario' || view === 'ajustes'
+  const moreActive = view === 'asistente' || view === 'mapa' || view === 'calendario' || view === 'ajustes'
 
   return (
     <div className="app-shell">
@@ -74,6 +75,7 @@ export default function AppV2() {
           <NavButton active={view === 'bares'} onClick={() => go('bares')}>Bares</NavButton>
           <NavButton active={view === 'averias'} onClick={() => go('averias')}>Averías</NavButton>
           <NavButton active={view === 'recaudaciones'} onClick={() => go('recaudaciones')}>Recaud.</NavButton>
+          <NavButton active={view === 'asistente'} onClick={() => go('asistente')}>Asistente</NavButton>
           <NavButton active={view === 'mapa'} onClick={() => go('mapa')}>Mapa</NavButton>
           <NavButton active={view === 'calendario'} onClick={() => go('calendario')}>Calend.</NavButton>
           <NavButton active={view === 'ajustes'} onClick={() => go('ajustes')}>Ajustes</NavButton>
@@ -88,6 +90,7 @@ export default function AppV2() {
         </nav>
 
         {moreOpen && <div className="mobile-more-menu" role="menu">
+          <button className={view === 'asistente' ? 'active' : ''} onClick={() => go('asistente')}>Asistente local</button>
           <button className={view === 'mapa' ? 'active' : ''} onClick={() => go('mapa')}>Mapa de bares</button>
           <button className={view === 'calendario' ? 'active' : ''} onClick={() => go('calendario')}>Calendario</button>
           <button className={view === 'ajustes' ? 'active' : ''} onClick={() => go('ajustes')}>Ajustes y copias de seguridad</button>
@@ -103,6 +106,7 @@ export default function AppV2() {
         {view === 'bares' && <BarsView bars={bars} machines={machines} incidents={incidents} selectedBar={selectedBar} selectBar={setSelectedBarId} flash={flash} />}
         {view === 'averias' && <IncidentsView bars={bars} machines={machines} incidents={incidents} flash={flash} />}
         {view === 'recaudaciones' && <CollectionsView bars={bars} machines={machines} collections={collections} entries={entries} flash={flash} />}
+        {view === 'asistente' && <AssistantView bars={bars} machines={machines} incidents={incidents} collections={collections} entries={entries} />}
         {view === 'mapa' && <MapView bars={bars} machines={machines} incidents={incidents} />}
         {view === 'calendario' && <CalendarView bars={bars} machines={machines} incidents={incidents} collections={collections} entries={entries} />}
         {view === 'ajustes' && <SettingsView flash={flash} installApp={installPrompt ? installApp : undefined} />}
@@ -121,6 +125,7 @@ function titleFor(view: View) {
     bares: 'Bares y máquinas',
     averias: 'Historial de averías',
     recaudaciones: 'Recaudaciones',
+    asistente: 'Asistente local',
     mapa: 'Mapa de bares',
     calendario: 'Calendario',
     ajustes: 'Ajustes',
