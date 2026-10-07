@@ -4,6 +4,7 @@ import App from './app/AppV2'
 import './styles.css'
 import './map.css'
 import './updates.css'
+import './assistant.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
