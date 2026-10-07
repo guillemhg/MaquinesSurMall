@@ -1,4 +1,5 @@
-import type { Bar, CollectionEntry, Incident, Machine } from '../types'
+import type { Bar, Collection, CollectionEntry, Incident, Machine } from '../types'
+import { AssistantView } from './AssistantView'
 import { formatDate, money } from './utils'
 
 export function Dashboard({
@@ -12,7 +13,7 @@ export function Dashboard({
   bars: Bar[]
   machines: Machine[]
   incidents: Incident[]
-  collections: { id: string; barId: string; date: string; taxesAmount: number }[]
+  collections: Collection[]
   entries: CollectionEntry[]
   openBars: () => void
 }) {
@@ -30,7 +31,41 @@ export function Dashboard({
         <Stat label="Última recaudación" value={lastCollection ? money(lastTotal) : '—'} />
       </section>
 
-      <section className="grid-two">
+      <section className="dashboard-assistant">
+        <div className="dashboard-assistant-topline">
+          <div>
+            <span className="dashboard-assistant-kicker">Consulta rápida</span>
+            <h2>Pregunta al Asistente Sur</h2>
+            <p>Consulta recaudaciones, tasas, averías, bares y máquinas directamente desde la pantalla principal.</p>
+          </div>
+
+          <details className="assistant-help">
+            <summary>¿Qué puedo preguntar?</summary>
+            <div className="assistant-help-card">
+              <strong>Ejemplos</strong>
+              <ul>
+                <li>¿Cuánto ha recaudado Bar Pepito los últimos 2 meses?</li>
+                <li>¿Qué bar ha recaudado más este mes?</li>
+                <li>¿Cuánto hemos pagado en tasas este año?</li>
+                <li>¿Cuántas averías de ordenador hemos tenido este año?</li>
+                <li>¿Cuántas máquinas tipo B tenemos activas?</li>
+                <li>¿Qué bares están inactivos?</li>
+              </ul>
+              <p>Puedes cambiar el nombre del bar, el periodo o el tipo de avería y escribir la pregunta con tus propias palabras.</p>
+            </div>
+          </details>
+        </div>
+
+        <AssistantView
+          bars={bars}
+          machines={machines}
+          incidents={incidents}
+          collections={collections}
+          entries={entries}
+        />
+      </section>
+
+      <section className="grid-two dashboard-secondary-grid">
         <div className="panel">
           <div className="panel-title">
             <div><h2>Últimas averías</h2><p>Historial reciente de intervenciones</p></div>
