@@ -21,6 +21,7 @@ export default function AppV2() {
   const [selectedBarId, setSelectedBarId] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
+  const [moreOpen, setMoreOpen] = useState(false)
 
   useEffect(() => {
     const handler = (event: Event) => {
@@ -43,6 +44,11 @@ export default function AppV2() {
     window.setTimeout(() => setNotice(''), 2600)
   }
 
+  const go = (next: View) => {
+    setView(next)
+    setMoreOpen(false)
+  }
+
   async function installApp() {
     if (!installPrompt) return
     await installPrompt.prompt()
@@ -53,29 +59,47 @@ export default function AppV2() {
     }
   }
 
+  const moreActive = view === 'mapa' || view === 'calendario' || view === 'ajustes'
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-mark">MS</div>
-          <div><strong>Maquines Sur</strong><span>Mallorca · Local</span></div>
+          <img className="brand-logo" src={`${import.meta.env.BASE_URL}logo-recreativos-sur.webp`} alt="Recreativos Sur Mallorca" />
+          <div><strong>Recreativos Sur</strong><span>Mallorca · Gestión</span></div>
         </div>
-        <nav>
-          <NavButton active={view === 'inicio'} onClick={() => setView('inicio')}>Inicio</NavButton>
-          <NavButton active={view === 'bares'} onClick={() => setView('bares')}>Bares</NavButton>
-          <NavButton active={view === 'averias'} onClick={() => setView('averias')}>Averías</NavButton>
-          <NavButton active={view === 'recaudaciones'} onClick={() => setView('recaudaciones')}>Recaud.</NavButton>
-          <NavButton active={view === 'mapa'} onClick={() => setView('mapa')}>Mapa</NavButton>
-          <NavButton active={view === 'calendario'} onClick={() => setView('calendario')}>Calend.</NavButton>
-          <NavButton active={view === 'ajustes'} onClick={() => setView('ajustes')}>Ajustes</NavButton>
+
+        <nav className="desktop-nav">
+          <NavButton active={view === 'inicio'} onClick={() => go('inicio')}>Inicio</NavButton>
+          <NavButton active={view === 'bares'} onClick={() => go('bares')}>Bares</NavButton>
+          <NavButton active={view === 'averias'} onClick={() => go('averias')}>Averías</NavButton>
+          <NavButton active={view === 'recaudaciones'} onClick={() => go('recaudaciones')}>Recaud.</NavButton>
+          <NavButton active={view === 'mapa'} onClick={() => go('mapa')}>Mapa</NavButton>
+          <NavButton active={view === 'calendario'} onClick={() => go('calendario')}>Calend.</NavButton>
+          <NavButton active={view === 'ajustes'} onClick={() => go('ajustes')}>Ajustes</NavButton>
         </nav>
+
+        <nav className="mobile-nav" aria-label="Navegación principal">
+          <NavButton active={view === 'inicio'} onClick={() => go('inicio')}>Inicio</NavButton>
+          <NavButton active={view === 'bares'} onClick={() => go('bares')}>Bares</NavButton>
+          <NavButton active={view === 'averias'} onClick={() => go('averias')}>Averías</NavButton>
+          <NavButton active={view === 'recaudaciones'} onClick={() => go('recaudaciones')}>Recaud.</NavButton>
+          <button className={moreActive ? 'nav-button active' : 'nav-button'} onClick={() => setMoreOpen((current) => !current)} aria-expanded={moreOpen} aria-haspopup="menu">Más {moreOpen ? '▾' : '▴'}</button>
+        </nav>
+
+        {moreOpen && <div className="mobile-more-menu" role="menu">
+          <button className={view === 'mapa' ? 'active' : ''} onClick={() => go('mapa')}>Mapa de bares</button>
+          <button className={view === 'calendario' ? 'active' : ''} onClick={() => go('calendario')}>Calendario</button>
+          <button className={view === 'ajustes' ? 'active' : ''} onClick={() => go('ajustes')}>Ajustes y copias de seguridad</button>
+        </div>}
+
         <div className="privacy-badge"><span className="dot" /><div><strong>Datos locales</strong><small>Sin nube ni servidor</small></div></div>
       </aside>
 
       <main className="content">
-        <header className="topbar"><div><h1>{titleFor(view)}</h1><p>Gestión interna de máquinas recreativas</p></div><button className="secondary" onClick={() => setView('ajustes')}>Copia de seguridad</button></header>
+        <header className="topbar"><div><h1>{titleFor(view)}</h1><p>Gestión interna de máquinas recreativas</p></div><button className="secondary" onClick={() => go('ajustes')}>Copia de seguridad</button></header>
         {notice && <div className="notice">{notice}</div>}
-        {view === 'inicio' && <Dashboard bars={bars} machines={machines} incidents={incidents} collections={collections} entries={entries} openBars={() => setView('bares')} />}
+        {view === 'inicio' && <Dashboard bars={bars} machines={machines} incidents={incidents} collections={collections} entries={entries} openBars={() => go('bares')} />}
         {view === 'bares' && <BarsView bars={bars} machines={machines} incidents={incidents} selectedBar={selectedBar} selectBar={setSelectedBarId} flash={flash} />}
         {view === 'averias' && <IncidentsView bars={bars} machines={machines} incidents={incidents} flash={flash} />}
         {view === 'recaudaciones' && <CollectionsView bars={bars} machines={machines} collections={collections} entries={entries} flash={flash} />}
