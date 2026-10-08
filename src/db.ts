@@ -77,13 +77,7 @@ export async function importBackup(payload: BackupPayload) {
 
   await db.transaction(
     'rw',
-    db.bars,
-    db.machines,
-    db.incidents,
-    db.collections,
-    db.collectionEntries,
-    db.routeGroups,
-    db.routeEntries,
+    [db.bars, db.machines, db.incidents, db.collections, db.collectionEntries, db.routeGroups, db.routeEntries],
     async () => {
       await Promise.all([
         db.routeEntries.clear(),
