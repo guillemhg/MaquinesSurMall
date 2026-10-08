@@ -13,7 +13,7 @@ const DAYS = [
   { value: 7, label: 'Domingo' },
 ]
 
-const WEEKS = Array.from({ length: 12 }, (_, index) => index + 1)
+const WEEKS = [1, 2]
 
 export function RoutesView({
   bars,
@@ -39,7 +39,7 @@ export function RoutesView({
 
   const selectedGroup = groups.find((group) => group.id === selectedGroupId)
   const selectedEntries = useMemo(
-    () => routeEntries.filter((entry) => entry.groupId === selectedGroupId),
+    () => routeEntries.filter((entry) => entry.groupId === selectedGroupId && entry.week <= 2),
     [routeEntries, selectedGroupId],
   )
   const uniqueBars = new Set(selectedEntries.map((entry) => entry.barId)).size
@@ -69,7 +69,7 @@ export function RoutesView({
 
   async function deleteGroup() {
     if (!selectedGroup) return
-    const ok = window.confirm(`¿Eliminar “${selectedGroup.name}” y toda su planificación de 12 semanas?`)
+    const ok = window.confirm(`¿Eliminar “${selectedGroup.name}” y toda su planificación del ciclo de 2 semanas?`)
     if (!ok) return
     await db.transaction('rw', db.routeGroups, db.routeEntries, async () => {
       await db.routeEntries.where('groupId').equals(selectedGroup.id).delete()
@@ -119,11 +119,11 @@ export function RoutesView({
 
         <div className="route-group-list">
           {groups.map((group) => {
-            const groupEntries = routeEntries.filter((entry) => entry.groupId === group.id)
+            const groupEntries = routeEntries.filter((entry) => entry.groupId === group.id && entry.week <= 2)
             const barCount = new Set(groupEntries.map((entry) => entry.barId)).size
             return <button key={group.id} className={group.id === selectedGroupId ? 'route-group-button selected' : 'route-group-button'} onClick={() => setSelectedGroupId(group.id)}>
               <strong>{group.name}</strong>
-              <span>{barCount} bares · {groupEntries.length} visitas planificadas</span>
+              <span>{barCount} bares · {groupEntries.length} visitas por ciclo</span>
             </button>
           })}
           {groups.length === 0 && <div className="empty">Crea el primer grupo, por ejemplo “Recaudaciones Campos”.</div>}
@@ -131,17 +131,21 @@ export function RoutesView({
       </div>
 
       <div className="panel route-calendar-panel">
-        {!selectedGroup ? <div className="empty">Selecciona o crea un grupo para planificar sus 12 semanas.</div> : <>
+        {!selectedGroup ? <div className="empty">Selecciona o crea un grupo para planificar su ciclo de 2 semanas.</div> : <>
           <div className="route-calendar-header">
             <div>
-              <span className="route-kicker">Planificación de 12 semanas</span>
+              <span className="route-kicker">Ciclo repetitivo de 2 semanas</span>
               <h2>{selectedGroup.name}</h2>
-              <p>{uniqueBars} bares distintos · {selectedEntries.length} visitas planificadas</p>
+              <p>{uniqueBars} bares distintos · {selectedEntries.length} visitas por ciclo</p>
             </div>
             <div className="route-header-actions">
               <button className="secondary" onClick={renameGroup}>Renombrar</button>
               <button className="danger-button" onClick={deleteGroup}>Eliminar grupo</button>
             </div>
+          </div>
+
+          <div className="route-help-note">
+            La planificación funciona en ciclo: <strong>Semana 1 → Semana 2 → Semana 1 → Semana 2…</strong>. Está pensada especialmente para las recaudaciones quincenales de máquinas Tipo B.
           </div>
 
           <form className="route-entry-form" onSubmit={addRouteEntry}>
@@ -151,7 +155,7 @@ export function RoutesView({
                 {bars.filter((bar) => bar.active).map((bar) => <option key={bar.id} value={bar.id}>{bar.name}</option>)}
               </select>
             </label>
-            <label>Semana
+            <label>Semana del ciclo
               <select value={week} onChange={(e) => setWeek(e.target.value)}>{WEEKS.map((value) => <option key={value} value={value}>Semana {value}</option>)}</select>
             </label>
             <label>Día
