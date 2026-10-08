@@ -132,9 +132,10 @@ function BarDetail({ bar, machines, incidents, selectBar, flash }: { bar: Bar; m
   async function deleteBar() {
     const collectionCount = await db.collections.where('barId').equals(bar.id).count()
     const incidentCount = incidents.filter((incident) => incident.barId === bar.id).length
+    const routeCount = await db.routeEntries.where('barId').equals(bar.id).count()
 
-    if (machines.length > 0 || collectionCount > 0 || incidentCount > 0) {
-      window.alert('Este bar tiene máquinas o historial asociado. Para no perder datos, márcalo como Inactivo en lugar de eliminarlo.')
+    if (machines.length > 0 || collectionCount > 0 || incidentCount > 0 || routeCount > 0) {
+      window.alert('Este bar tiene máquinas, historial o una ruta asociada. Para no perder datos, márcalo como Inactivo en lugar de eliminarlo.')
       return
     }
 
@@ -209,8 +210,8 @@ function BarDetail({ bar, machines, incidents, selectBar, flash }: { bar: Bar; m
     </div>
     <details className="details-box"><summary>Añadir máquina</summary>
       <form className="form-grid" onSubmit={addMachine}>
-        <label>Tipo<select value={category} onChange={(e) => { const next = e.target.value as MachineCategory; setCategory(next); setSubtype(next === 'A' ? 'Billar' : 'Máquina recreativa'); setSlotFormat('simple') }}><option value="B">Tipo B · Tragaperras</option><option value="A">Tipo A · Billar, futbolín, dardos…</option></select></label>
-        <label>Clase{category === 'A' ? <select value={subtype} onChange={(e) => setSubtype(e.target.value)}><option>Billar</option><option>Futbolín</option><option>Dardos</option><option>Otra</option></select> : <input value={subtype} onChange={(e) => setSubtype(e.target.value)} />}</label>
+        <label>Tipo<select value={category} onChange={(e) => { const next = e.target.value as MachineCategory; setCategory(next); setSubtype(next === 'A' ? 'Billar' : 'Máquina recreativa'); setSlotFormat('simple') }}><option value="B">Tipo B · Tragaperras</option><option value="A">Tipo A · Billar, futbolín, dardos, pinball…</option></select></label>
+        <label>Clase{category === 'A' ? <select value={subtype} onChange={(e) => setSubtype(e.target.value)}><option>Billar</option><option>Futbolín</option><option>Dardos</option><option>Pinball</option><option>Otra</option></select> : <input value={subtype} onChange={(e) => setSubtype(e.target.value)} />}</label>
         {category === 'B' && <label>Configuración<select value={slotFormat} onChange={(e) => setSlotFormat(e.target.value as SlotFormat)}><option value="simple">Simple</option><option value="twin">Twin</option></select></label>}
         <label>Identificador / nombre<input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. B-0347" /></label>
         <label>Modelo <span className="optional">opcional</span><input value={model} onChange={(e) => setModel(e.target.value)} placeholder="Ej. Manhattan" /></label>

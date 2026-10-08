@@ -5,11 +5,12 @@ import { Dashboard } from './Dashboard'
 import { BarsView } from './BarsView'
 import { IncidentsView } from './IncidentsView'
 import { CollectionsView } from './CollectionsView'
+import { RoutesView } from './RoutesView'
 import { MapView } from './MapView'
 import { CalendarView } from './CalendarView'
 import { SettingsView } from './SettingsView'
 
-type View = 'inicio' | 'bares' | 'averias' | 'recaudaciones' | 'mapa' | 'calendario' | 'ajustes'
+type View = 'inicio' | 'bares' | 'averias' | 'recaudaciones' | 'rutas' | 'mapa' | 'calendario' | 'ajustes'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -37,6 +38,8 @@ export default function AppV2() {
   const incidents = useLiveQuery(() => db.incidents.orderBy('date').reverse().toArray(), []) ?? []
   const collections = useLiveQuery(() => db.collections.orderBy('date').reverse().toArray(), []) ?? []
   const entries = useLiveQuery(() => db.collectionEntries.toArray(), []) ?? []
+  const routeGroups = useLiveQuery(() => db.routeGroups.orderBy('name').toArray(), []) ?? []
+  const routeEntries = useLiveQuery(() => db.routeEntries.toArray(), []) ?? []
   const selectedBar = bars.find((bar) => bar.id === selectedBarId)
 
   const flash = (message: string) => {
@@ -59,7 +62,7 @@ export default function AppV2() {
     }
   }
 
-  const moreActive = view === 'mapa' || view === 'calendario' || view === 'ajustes'
+  const moreActive = view === 'rutas' || view === 'mapa' || view === 'calendario' || view === 'ajustes'
 
   return (
     <div className="app-shell">
@@ -74,6 +77,7 @@ export default function AppV2() {
           <NavButton active={view === 'bares'} onClick={() => go('bares')}>Bares</NavButton>
           <NavButton active={view === 'averias'} onClick={() => go('averias')}>Averías</NavButton>
           <NavButton active={view === 'recaudaciones'} onClick={() => go('recaudaciones')}>Recaud.</NavButton>
+          <NavButton active={view === 'rutas'} onClick={() => go('rutas')}>Rutas</NavButton>
           <NavButton active={view === 'mapa'} onClick={() => go('mapa')}>Mapa</NavButton>
           <NavButton active={view === 'calendario'} onClick={() => go('calendario')}>Calend.</NavButton>
           <NavButton active={view === 'ajustes'} onClick={() => go('ajustes')}>Ajustes</NavButton>
@@ -88,6 +92,7 @@ export default function AppV2() {
         </nav>
 
         {moreOpen && <div className="mobile-more-menu" role="menu">
+          <button className={view === 'rutas' ? 'active' : ''} onClick={() => go('rutas')}>Rutas · 12 semanas</button>
           <button className={view === 'mapa' ? 'active' : ''} onClick={() => go('mapa')}>Mapa de bares</button>
           <button className={view === 'calendario' ? 'active' : ''} onClick={() => go('calendario')}>Calendario</button>
           <button className={view === 'ajustes' ? 'active' : ''} onClick={() => go('ajustes')}>Ajustes y copias de seguridad</button>
@@ -102,7 +107,8 @@ export default function AppV2() {
         {view === 'inicio' && <Dashboard bars={bars} machines={machines} incidents={incidents} collections={collections} entries={entries} openBars={() => go('bares')} />}
         {view === 'bares' && <BarsView bars={bars} machines={machines} incidents={incidents} selectedBar={selectedBar} selectBar={setSelectedBarId} flash={flash} />}
         {view === 'averias' && <IncidentsView bars={bars} machines={machines} incidents={incidents} flash={flash} />}
-        {view === 'recaudaciones' && <CollectionsView bars={bars} machines={machines} collections={collections} entries={entries} flash={flash} />}
+        {view === 'recaudaciones' && <CollectionsView bars={bars} machines={machines} collections={collections} entries={entries} routeGroups={routeGroups} routeEntries={routeEntries} flash={flash} />}
+        {view === 'rutas' && <RoutesView bars={bars} groups={routeGroups} routeEntries={routeEntries} flash={flash} />}
         {view === 'mapa' && <MapView bars={bars} machines={machines} incidents={incidents} />}
         {view === 'calendario' && <CalendarView bars={bars} machines={machines} incidents={incidents} collections={collections} entries={entries} />}
         {view === 'ajustes' && <SettingsView flash={flash} installApp={installPrompt ? installApp : undefined} />}
@@ -121,6 +127,7 @@ function titleFor(view: View) {
     bares: 'Bares y máquinas',
     averias: 'Historial de averías',
     recaudaciones: 'Recaudaciones',
+    rutas: 'Rutas de recaudación',
     mapa: 'Mapa de bares',
     calendario: 'Calendario',
     ajustes: 'Ajustes',

@@ -56,13 +56,31 @@ export interface CollectionEntry {
   notes?: string
 }
 
+export interface RouteGroup {
+  id: string
+  name: string
+  active: boolean
+  createdAt: string
+}
+
+export interface RouteEntry {
+  id: string
+  groupId: string
+  barId: string
+  week: number
+  dayOfWeek: number
+  createdAt: string
+}
+
 export interface BackupPayload {
   app: 'MaquinesSurMall'
-  version: 1
+  version: 1 | 2
   exportedAt: string
   bars: Bar[]
   machines: Machine[]
   incidents: Incident[]
   collections: Collection[]
   collectionEntries: CollectionEntry[]
+  routeGroups?: RouteGroup[]
+  routeEntries?: RouteEntry[]
 }

@@ -1,25 +1,39 @@
-import { useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { db } from '../db'
-import type { Bar, CollectionEntry, Machine } from '../types'
+import type { Bar, CollectionEntry, Machine, RouteEntry, RouteGroup } from '../types'
 import { formatDate, money, today, uuid } from './utils'
 
-export function CollectionsView({ bars, machines, collections, entries, flash }: {
+export function CollectionsView({ bars, machines, collections, entries, routeGroups, routeEntries, flash }: {
   bars: Bar[]
   machines: Machine[]
   collections: { id: string; barId: string; date: string; taxesAmount: number; notes?: string }[]
   entries: CollectionEntry[]
+  routeGroups: RouteGroup[]
+  routeEntries: RouteEntry[]
   flash: (m: string) => void
 }) {
+  const [routeGroupId, setRouteGroupId] = useState('')
   const [barId, setBarId] = useState('')
   const [date, setDate] = useState(today())
-  const [taxes, setTaxes] = useState('180')
+  const [taxes, setTaxes] = useState('0')
   const [notes, setNotes] = useState('')
   const [values, setValues] = useState<Record<string, { amount: string; hadB: boolean; bAmount: string }>>({})
+
+  const allowedRouteBarIds = useMemo(() => {
+    if (!routeGroupId) return null
+    return new Set(routeEntries.filter((entry) => entry.groupId === routeGroupId).map((entry) => entry.barId))
+  }, [routeGroupId, routeEntries])
+
+  const visibleBars = bars.filter((bar) => bar.active && (!allowedRouteBarIds || allowedRouteBarIds.has(bar.id)))
   const barMachines = machines.filter((m) => m.barId === barId && m.active)
-  const selectedHasTwin = barMachines.some((m) => m.category === 'B' && m.slotFormat === 'twin')
+  const typeBMachines = barMachines.filter((m) => m.category === 'B')
+  const selectedHasTwin = typeBMachines.some((m) => m.slotFormat === 'twin')
+  const selectedHasTypeB = typeBMachines.length > 0
 
   const defaultTaxesForBar = (nextBarId: string) => {
-    const hasTwin = machines.some((m) => m.barId === nextBarId && m.active && m.category === 'B' && m.slotFormat === 'twin')
+    const activeTypeB = machines.filter((m) => m.barId === nextBarId && m.active && m.category === 'B')
+    if (activeTypeB.length === 0) return '0'
+    const hasTwin = activeTypeB.some((m) => m.slotFormat === 'twin')
     return hasTwin ? '290' : '180'
   }
 
@@ -44,14 +58,29 @@ export function CollectionsView({ bars, machines, collections, entries, flash }:
     flash('Recaudación guardada.')
   }
 
+  const selectedRouteGroup = routeGroups.find((group) => group.id === routeGroupId)
+
   return <section className="grid-two collection-layout">
     <div className="panel">
-      <div className="panel-title"><div><h2>Nueva recaudación</h2><p>Las máquinas se cargan automáticamente según el bar</p></div></div>
+      <div className="panel-title"><div><h2>Nueva recaudación</h2><p>Filtra por ruta y después elige el bar.</p></div></div>
       <form className="stack-form" onSubmit={save}>
-        <label>Bar<select value={barId} onChange={(e) => { const nextBarId = e.target.value; setBarId(nextBarId); setValues({}); setTaxes(nextBarId ? defaultTaxesForBar(nextBarId) : '180') }}><option value="">Selecciona un bar</option>{bars.filter((b) => b.active).map((bar) => <option key={bar.id} value={bar.id}>{bar.name}</option>)}</select></label>
+        <label>Ruta / grupo <span className="optional">opcional</span>
+          <select value={routeGroupId} onChange={(e) => { setRouteGroupId(e.target.value); setBarId(''); setValues({}); setTaxes('0') }}>
+            <option value="">Todos los bares</option>
+            {routeGroups.filter((group) => group.active).map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
+          </select>
+        </label>
+        {routeGroupId && <div className="route-filter-note">Mostrando únicamente bares incluidos en <strong>{selectedRouteGroup?.name ?? 'esta ruta'}</strong>.</div>}
+        <label>Bar
+          <select value={barId} onChange={(e) => { const nextBarId = e.target.value; setBarId(nextBarId); setValues({}); setTaxes(nextBarId ? defaultTaxesForBar(nextBarId) : '0') }}>
+            <option value="">Selecciona un bar</option>
+            {visibleBars.map((bar) => <option key={bar.id} value={bar.id}>{bar.name}</option>)}
+          </select>
+        </label>
+        {routeGroupId && visibleBars.length === 0 && <div className="empty">Este grupo todavía no tiene bares planificados en Rutas.</div>}
         <div className="form-grid two">
           <label>Fecha<input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></label>
-          <label>Tasas (€)<input inputMode="decimal" value={taxes} onChange={(e) => setTaxes(e.target.value)} /><span className="tax-hint">{barId ? (selectedHasTwin ? 'Twin detectada: 290 € por defecto. Puedes modificarlo.' : 'Configuración Simple: 180 € por defecto. Puedes modificarlo.') : '180 € por defecto; 290 € si el bar tiene una Twin.'}</span></label>
+          <label>Tasas (€)<input inputMode="decimal" value={taxes} onChange={(e) => setTaxes(e.target.value)} /><span className="tax-hint">{barId ? (!selectedHasTypeB ? 'Este bar solo tiene máquinas Tipo A: 0 € de tasa.' : selectedHasTwin ? 'Hay una Tipo B Twin: 290 € por defecto. Puedes modificarlo.' : 'Tipo B Simple: 180 € por defecto. Puedes modificarlo.') : 'Solo las máquinas Tipo B tienen tasa. Tipo A: 0 €.'}</span></label>
         </div>
         {barId && barMachines.length === 0 && <div className="empty">Este bar no tiene máquinas activas.</div>}
         {barMachines.map((machine) => {
