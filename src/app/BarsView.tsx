@@ -1,19 +1,28 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { db } from '../db'
-import type { Bar, Incident, Machine, MachineCategory } from '../types'
-import { today, uuid } from './utils'
+import type { Bar, Incident, Machine, MachineCategory, SlotFormat } from '../types'
+import { formatDate, today, uuid } from './utils'
 
 export function BarsView({ bars, machines, incidents, selectedBar, selectBar, flash }: { bars: Bar[]; machines: Machine[]; incidents: Incident[]; selectedBar?: Bar; selectBar: (id: string | null) => void; flash: (message: string) => void }) {
   const [name, setName] = useState('')
   const [address, setAddress] = useState('')
+  const [contractExpiry, setContractExpiry] = useState('')
 
   async function addBar(e: FormEvent) {
     e.preventDefault()
-    if (!name.trim()) return
-    const bar: Bar = { id: uuid(), name: name.trim(), address: address.trim(), active: true, createdAt: new Date().toISOString() }
+    if (!name.trim() || !contractExpiry) return
+    const bar: Bar = {
+      id: uuid(),
+      name: name.trim(),
+      address: address.trim(),
+      contractExpiry,
+      active: true,
+      createdAt: new Date().toISOString(),
+    }
     await db.bars.add(bar)
     setName('')
     setAddress('')
+    setContractExpiry('')
     selectBar(bar.id)
     flash('Bar añadido.')
   }
@@ -26,6 +35,7 @@ export function BarsView({ bars, machines, incidents, selectedBar, selectBar, fl
       <form className="stack-form" onSubmit={addBar}>
         <label>Nombre<input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. Bar Can Toni" /></label>
         <label>Dirección <span className="optional">opcional</span><input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Dirección" /></label>
+        <label>Fecha de caducidad del contrato<input type="date" required value={contractExpiry} onChange={(e) => setContractExpiry(e.target.value)} /></label>
         <button className="primary" type="submit">Añadir bar</button>
       </form>
       <div className="bar-list">
@@ -36,6 +46,7 @@ export function BarsView({ bars, machines, incidents, selectedBar, selectBar, fl
             <div>
               <strong>{bar.name}</strong>
               <span>{count} máquinas · {historyCount} averías registradas</span>
+              <span className={bar.contractExpiry ? 'contract-info' : 'contract-info missing'}>{bar.contractExpiry ? `Contrato hasta ${formatDate(bar.contractExpiry)}` : 'Caducidad de contrato pendiente'}</span>
               <span className="bar-item-status"><span className={bar.active ? 'status-pill active' : 'status-pill inactive'}>{bar.active ? 'Activo' : 'Inactivo'}</span></span>
             </div>
             <span>›</span>
@@ -53,23 +64,37 @@ function BarDetail({ bar, machines, incidents, selectBar, flash }: { bar: Bar; m
   const [subtype, setSubtype] = useState('Máquina recreativa')
   const [name, setName] = useState('')
   const [model, setModel] = useState('')
+  const [slotFormat, setSlotFormat] = useState<SlotFormat>('simple')
   const [editingBar, setEditingBar] = useState(false)
   const [editName, setEditName] = useState(bar.name)
   const [editAddress, setEditAddress] = useState(bar.address ?? '')
+  const [editContractExpiry, setEditContractExpiry] = useState(bar.contractExpiry ?? '')
 
   useEffect(() => {
     setEditName(bar.name)
     setEditAddress(bar.address ?? '')
+    setEditContractExpiry(bar.contractExpiry ?? '')
     setEditingBar(false)
-  }, [bar.id, bar.name, bar.address])
+  }, [bar.id, bar.name, bar.address, bar.contractExpiry])
 
   async function addMachine(e: FormEvent) {
     e.preventDefault()
     if (!name.trim()) return
-    const machine: Machine = { id: uuid(), barId: bar.id, category, subtype: subtype.trim() || (category === 'A' ? 'Otra' : 'Máquina recreativa'), name: name.trim(), model: model.trim(), active: true, createdAt: new Date().toISOString() }
+    const machine: Machine = {
+      id: uuid(),
+      barId: bar.id,
+      category,
+      subtype: subtype.trim() || (category === 'A' ? 'Otra' : 'Máquina recreativa'),
+      name: name.trim(),
+      model: model.trim(),
+      slotFormat: category === 'B' ? slotFormat : undefined,
+      active: true,
+      createdAt: new Date().toISOString(),
+    }
     await db.machines.add(machine)
     setName('')
     setModel('')
+    setSlotFormat('simple')
     flash('Máquina añadida.')
   }
 
@@ -85,7 +110,11 @@ function BarDetail({ bar, machines, incidents, selectBar, flash }: { bar: Bar; m
   async function saveBar(e: FormEvent) {
     e.preventDefault()
     if (!editName.trim()) return
-    await db.bars.update(bar.id, { name: editName.trim(), address: editAddress.trim() })
+    await db.bars.update(bar.id, {
+      name: editName.trim(),
+      address: editAddress.trim(),
+      contractExpiry: editContractExpiry || undefined,
+    })
     setEditingBar(false)
     flash('Bar actualizado.')
   }
@@ -93,6 +122,11 @@ function BarDetail({ bar, machines, incidents, selectBar, flash }: { bar: Bar; m
   async function toggleBarActive() {
     await db.bars.update(bar.id, { active: !bar.active })
     flash(bar.active ? 'Bar marcado como inactivo.' : 'Bar marcado como activo.')
+  }
+
+  async function changeSlotFormat(machine: Machine, next: SlotFormat) {
+    await db.machines.update(machine.id, { slotFormat: next })
+    flash(next === 'twin' ? 'Máquina marcada como Twin.' : 'Máquina marcada como Simple.')
   }
 
   async function deleteBar() {
@@ -117,6 +151,7 @@ function BarDetail({ bar, machines, incidents, selectBar, flash }: { bar: Bar; m
       <div>
         <h2>{bar.name}</h2>
         <p>{bar.address || 'Sin dirección'}</p>
+        <p className={bar.contractExpiry ? 'contract-detail' : 'contract-detail missing'}>{bar.contractExpiry ? `Contrato hasta ${formatDate(bar.contractExpiry)}` : 'Fecha de caducidad del contrato pendiente'}</p>
       </div>
       <div className="bar-header-actions">
         <span className={bar.active ? 'status-pill active' : 'status-pill inactive'}>{bar.active ? 'Activo' : 'Inactivo'}</span>
@@ -140,8 +175,9 @@ function BarDetail({ bar, machines, incidents, selectBar, flash }: { bar: Bar; m
       {editingBar && <form className="edit-bar-form" onSubmit={saveBar}>
         <label>Nombre<input value={editName} onChange={(e) => setEditName(e.target.value)} /></label>
         <label>Dirección<input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} placeholder="Dirección" /></label>
+        <label>Fecha de caducidad del contrato<input type="date" value={editContractExpiry} onChange={(e) => setEditContractExpiry(e.target.value)} /></label>
         <div className="edit-bar-actions">
-          <button className="secondary" type="button" onClick={() => { setEditName(bar.name); setEditAddress(bar.address ?? ''); setEditingBar(false) }}>Cancelar</button>
+          <button className="secondary" type="button" onClick={() => { setEditName(bar.name); setEditAddress(bar.address ?? ''); setEditContractExpiry(bar.contractExpiry ?? ''); setEditingBar(false) }}>Cancelar</button>
           <button className="primary" type="submit">Guardar cambios</button>
         </div>
       </form>}
@@ -150,9 +186,22 @@ function BarDetail({ bar, machines, incidents, selectBar, flash }: { bar: Bar; m
     <div className="machine-grid">
       {machines.map((machine) => {
         const historyCount = incidents.filter((i) => i.machineId === machine.id).length
+        const effectiveSlotFormat: SlotFormat = machine.slotFormat ?? 'simple'
         return <div className="machine-card" key={machine.id}>
-          <div className="machine-head"><span className={machine.category === 'A' ? 'type-badge a' : 'type-badge b'}>Tipo {machine.category}</span><span className="pill">{historyCount} averías</span></div>
+          <div className="machine-head">
+            <div className="machine-badges">
+              <span className={machine.category === 'A' ? 'type-badge a' : 'type-badge b'}>Tipo {machine.category}</span>
+              {machine.category === 'B' && <span className={effectiveSlotFormat === 'twin' ? 'slot-badge twin' : 'slot-badge simple'}>{effectiveSlotFormat === 'twin' ? 'Twin' : 'Simple'}</span>}
+            </div>
+            <span className="pill">{historyCount} averías</span>
+          </div>
           <h3>{machine.name}</h3><p>{machine.subtype}{machine.model ? ' · ' + machine.model : ''}</p>
+          {machine.category === 'B' && <label className="machine-slot-config">Configuración de tragaperras
+            <select value={effectiveSlotFormat} onChange={(e) => changeSlotFormat(machine, e.target.value as SlotFormat)}>
+              <option value="simple">Simple · tasa predeterminada 180 €</option>
+              <option value="twin">Twin · tasa predeterminada 290 €</option>
+            </select>
+          </label>}
           <button className="link-button" onClick={() => quickIncident(machine)}>+ Añadir avería al historial</button>
         </div>
       })}
@@ -160,8 +209,9 @@ function BarDetail({ bar, machines, incidents, selectBar, flash }: { bar: Bar; m
     </div>
     <details className="details-box"><summary>Añadir máquina</summary>
       <form className="form-grid" onSubmit={addMachine}>
-        <label>Tipo<select value={category} onChange={(e) => { const next = e.target.value as MachineCategory; setCategory(next); setSubtype(next === 'A' ? 'Billar' : 'Máquina recreativa') }}><option value="B">Tipo B · Tragaperras</option><option value="A">Tipo A · Billar, futbolín, dardos…</option></select></label>
+        <label>Tipo<select value={category} onChange={(e) => { const next = e.target.value as MachineCategory; setCategory(next); setSubtype(next === 'A' ? 'Billar' : 'Máquina recreativa'); setSlotFormat('simple') }}><option value="B">Tipo B · Tragaperras</option><option value="A">Tipo A · Billar, futbolín, dardos…</option></select></label>
         <label>Clase{category === 'A' ? <select value={subtype} onChange={(e) => setSubtype(e.target.value)}><option>Billar</option><option>Futbolín</option><option>Dardos</option><option>Otra</option></select> : <input value={subtype} onChange={(e) => setSubtype(e.target.value)} />}</label>
+        {category === 'B' && <label>Configuración<select value={slotFormat} onChange={(e) => setSlotFormat(e.target.value as SlotFormat)}><option value="simple">Simple</option><option value="twin">Twin</option></select></label>}
         <label>Identificador / nombre<input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. B-0347" /></label>
         <label>Modelo <span className="optional">opcional</span><input value={model} onChange={(e) => setModel(e.target.value)} placeholder="Ej. Manhattan" /></label>
         <button className="primary" type="submit">Guardar máquina</button>

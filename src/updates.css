@@ -128,6 +128,65 @@
   justify-content: flex-end;
 }
 
+.contract-info,
+.contract-detail {
+  color: #b54708 !important;
+  font-size: 12px !important;
+  font-weight: 750;
+}
+
+.contract-info.missing,
+.contract-detail.missing {
+  color: #b42318 !important;
+}
+
+.machine-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.slot-badge {
+  display: inline-flex;
+  width: fit-content;
+  padding: 4px 7px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.slot-badge.simple {
+  background: #f2f4f7;
+  color: #475467;
+}
+
+.slot-badge.twin {
+  background: #fff3ed;
+  color: #c2410c;
+}
+
+.machine-slot-config {
+  margin-top: 12px;
+  font-size: 12px;
+}
+
+.machine-slot-config select {
+  margin-top: 2px;
+}
+
+.tax-hint {
+  color: #667085;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.contract-pill {
+  background: #fffaeb !important;
+  color: #b54708 !important;
+}
+
 @media (max-width: 980px) {
   .desktop-nav {
     display: none !important;

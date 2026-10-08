@@ -16,6 +16,12 @@ export function CollectionsView({ bars, machines, collections, entries, flash }:
   const [notes, setNotes] = useState('')
   const [values, setValues] = useState<Record<string, { amount: string; hadB: boolean; bAmount: string }>>({})
   const barMachines = machines.filter((m) => m.barId === barId && m.active)
+  const selectedHasTwin = barMachines.some((m) => m.category === 'B' && m.slotFormat === 'twin')
+
+  const defaultTaxesForBar = (nextBarId: string) => {
+    const hasTwin = machines.some((m) => m.barId === nextBarId && m.active && m.category === 'B' && m.slotFormat === 'twin')
+    return hasTwin ? '290' : '180'
+  }
 
   const changeValue = (id: string, patch: Partial<{ amount: string; hadB: boolean; bAmount: string }>) =>
     setValues((current) => ({ ...current, [id]: { ...(current[id] ?? { amount: '', hadB: false, bAmount: '' }), ...patch } }))
@@ -42,13 +48,20 @@ export function CollectionsView({ bars, machines, collections, entries, flash }:
     <div className="panel">
       <div className="panel-title"><div><h2>Nueva recaudación</h2><p>Las máquinas se cargan automáticamente según el bar</p></div></div>
       <form className="stack-form" onSubmit={save}>
-        <label>Bar<select value={barId} onChange={(e) => { setBarId(e.target.value); setValues({}) }}><option value="">Selecciona un bar</option>{bars.filter((b) => b.active).map((bar) => <option key={bar.id} value={bar.id}>{bar.name}</option>)}</select></label>
-        <div className="form-grid two"><label>Fecha<input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></label><label>Tasas (€)<input inputMode="decimal" value={taxes} onChange={(e) => setTaxes(e.target.value)} /></label></div>
+        <label>Bar<select value={barId} onChange={(e) => { const nextBarId = e.target.value; setBarId(nextBarId); setValues({}); setTaxes(nextBarId ? defaultTaxesForBar(nextBarId) : '180') }}><option value="">Selecciona un bar</option>{bars.filter((b) => b.active).map((bar) => <option key={bar.id} value={bar.id}>{bar.name}</option>)}</select></label>
+        <div className="form-grid two">
+          <label>Fecha<input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></label>
+          <label>Tasas (€)<input inputMode="decimal" value={taxes} onChange={(e) => setTaxes(e.target.value)} /><span className="tax-hint">{barId ? (selectedHasTwin ? 'Twin detectada: 290 € por defecto. Puedes modificarlo.' : 'Configuración Simple: 180 € por defecto. Puedes modificarlo.') : '180 € por defecto; 290 € si el bar tiene una Twin.'}</span></label>
+        </div>
         {barId && barMachines.length === 0 && <div className="empty">Este bar no tiene máquinas activas.</div>}
         {barMachines.map((machine) => {
           const value = values[machine.id] ?? { amount: '', hadB: false, bAmount: '' }
+          const slotFormat = machine.category === 'B' ? (machine.slotFormat ?? 'simple') : undefined
           return <div className="collection-machine" key={machine.id}>
-            <div><span className={machine.category === 'A' ? 'type-badge a' : 'type-badge b'}>Tipo {machine.category}</span><strong>{machine.name}</strong><small>{machine.subtype}</small></div>
+            <div>
+              <div className="machine-badges"><span className={machine.category === 'A' ? 'type-badge a' : 'type-badge b'}>Tipo {machine.category}</span>{slotFormat && <span className={slotFormat === 'twin' ? 'slot-badge twin' : 'slot-badge simple'}>{slotFormat === 'twin' ? 'Twin' : 'Simple'}</span>}</div>
+              <strong>{machine.name}</strong><small>{machine.subtype}</small>
+            </div>
             <label>Recaudación (€)<input inputMode="decimal" value={value.amount} onChange={(e) => changeValue(machine.id, { amount: e.target.value })} placeholder="0,00" /></label>
             {machine.category === 'B' && <div className="b-box"><label className="check"><input type="checkbox" checked={value.hadB} onChange={(e) => changeValue(machine.id, { hadB: e.target.checked })} /> Hubo B</label>{value.hadB && <label>Valor B (€)<input inputMode="decimal" value={value.bAmount} onChange={(e) => changeValue(machine.id, { bAmount: e.target.value })} placeholder="0,00" /></label>}</div>}
           </div>

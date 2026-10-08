@@ -19,17 +19,23 @@ export function CalendarView({ bars, machines, incidents, collections, entries }
       date: c.date, kind: 'Recaudación', title: bars.find((b) => b.id === c.barId)?.name ?? 'Bar',
       detail: money(entries.filter((e) => e.collectionId === c.id).reduce((sum, e) => sum + e.amount, 0)),
     }))
-    return [...incidentEvents, ...collectionEvents].sort((a, b) => b.date.localeCompare(a.date))
+    const contractEvents = bars.filter((bar) => bar.contractExpiry?.startsWith(month)).map((bar) => ({
+      date: bar.contractExpiry as string,
+      kind: 'Caducidad',
+      title: bar.name,
+      detail: 'Caducidad del contrato / renovación',
+    }))
+    return [...incidentEvents, ...collectionEvents, ...contractEvents].sort((a, b) => b.date.localeCompare(a.date))
   }, [month, incidents, collections, entries, bars, machines])
 
   return (
     <section className="panel">
-      <div className="panel-title calendar-head"><div><h2>Actividad por fecha</h2><p>Averías y recaudaciones registradas</p></div><input className="month-input" type="month" value={month} onChange={(e) => setMonth(e.target.value)} /></div>
+      <div className="panel-title calendar-head"><div><h2>Actividad por fecha</h2><p>Averías, recaudaciones y caducidades de contrato</p></div><input className="month-input" type="month" value={month} onChange={(e) => setMonth(e.target.value)} /></div>
       <div className="timeline">
         {events.map((event, index) => (
           <div className="timeline-row" key={event.kind + event.date + index}>
             <div className="timeline-date">{formatDate(event.date)}</div>
-            <span className={event.kind === 'Avería' ? 'pill danger' : 'pill success'}>{event.kind}</span>
+            <span className={event.kind === 'Avería' ? 'pill danger' : event.kind === 'Caducidad' ? 'pill contract-pill' : 'pill success'}>{event.kind}</span>
             <div><strong>{event.title}</strong><span>{event.detail}</span></div>
           </div>
         ))}

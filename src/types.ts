@@ -1,10 +1,12 @@
 export type MachineCategory = 'A' | 'B'
+export type SlotFormat = 'simple' | 'twin'
 export type IncidentStatus = 'open' | 'resolved'
 
 export interface Bar {
   id: string
   name: string
   address?: string
+  contractExpiry?: string
   active: boolean
   createdAt: string
 }
@@ -17,6 +19,7 @@ export interface Machine {
   name: string
   model?: string
   serialNumber?: string
+  slotFormat?: SlotFormat
   active: boolean
   createdAt: string
 }
