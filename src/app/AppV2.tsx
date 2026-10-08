@@ -92,7 +92,7 @@ export default function AppV2() {
         </nav>
 
         {moreOpen && <div className="mobile-more-menu" role="menu">
-          <button className={view === 'rutas' ? 'active' : ''} onClick={() => go('rutas')}>Rutas · 12 semanas</button>
+          <button className={view === 'rutas' ? 'active' : ''} onClick={() => go('rutas')}>Rutas · ciclo 2 semanas</button>
           <button className={view === 'mapa' ? 'active' : ''} onClick={() => go('mapa')}>Mapa de bares</button>
           <button className={view === 'calendario' ? 'active' : ''} onClick={() => go('calendario')}>Calendario</button>
           <button className={view === 'ajustes' ? 'active' : ''} onClick={() => go('ajustes')}>Ajustes y copias de seguridad</button>
@@ -127,7 +127,7 @@ function titleFor(view: View) {
     bares: 'Bares y máquinas',
     averias: 'Historial de averías',
     recaudaciones: 'Recaudaciones',
-    rutas: 'Rutas de recaudación',
+    rutas: 'Rutas de recaudación · ciclo de 2 semanas',
     mapa: 'Mapa de bares',
     calendario: 'Calendario',
     ajustes: 'Ajustes',
